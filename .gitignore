@@ -1,0 +1,9 @@
+﻿venv/
+__pycache__/
+*.pyc
+*.log
+.env
+.DS_Store
+*.tmp
+insights_cache.pkl
+*.png
