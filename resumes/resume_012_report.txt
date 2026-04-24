@@ -1,45 +1,47 @@
 ================================================================================
-🎓 INTELLIGENT CAREER GUIDANCE REPORT #3
-Generated: 2026-04-21 23:48:52
+🎓 INTELLIGENT CAREER GUIDANCE REPORT #12
+Generated: 2026-04-21 23:42:32
 ================================================================================
 
 💡 EXTRACTED SKILLS:
 --------------------------------------------------------------------------------
-   • react
-   • angular
+   • java
+   • javascript
+   • go
    • vue
-   • jenkins
+   • node.js
+   • statistics
    • git
    • html
    • css
-   • sass
-   • bootstrap
-   • javascript
+   • less
+   • salesforce
    • frontend
 
 🎯 TOP-3 PREDICTIONS:
 --------------------------------------------------------------------------------
-   1. Web Developer       :  89.58% ██████████████████████████░░░░
-   2. Data Analyst        :   7.11% ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-   3. Data Scientist      :   1.59% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   1. Web Developer       :  87.97% ██████████████████████████░░░░
+   2. Backend Developer   :  11.35% ███░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   3. Data Scientist      :   0.33% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 🏆 FINAL PREDICTED ROLE:
 --------------------------------------------------------------------------------
    Role: Web Developer
-   Confidence: 89.58%
+   Confidence: 87.97%
    Expected Salary: $75K - $130K (avg: $95K)
 
 🔍 SKILL GAP ANALYSIS:
 --------------------------------------------------------------------------------
-   Skill Match: 71.4%
-   Readiness: ⚠️  Nearly Ready (learn essentials)
+   Skill Match: 57.1%
+   Readiness: ❌ Needs Significant Upskilling
 
-   ⚠️  Missing Technical Skills (2):
-      • java
+   ⚠️  Missing Technical Skills (3):
       • typescript
+      • angular
+      • react
 
    📚 LEARNING PRIORITY:
-      Focus on: java, typescript
+      Focus on: typescript, angular
 
 🏢 SUGGESTED COMPANIES:
 --------------------------------------------------------------------------------

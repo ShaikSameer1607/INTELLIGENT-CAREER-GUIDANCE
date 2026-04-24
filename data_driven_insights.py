@@ -205,6 +205,7 @@ class DataDrivenInsights:
         TECH_CATEGORIES = {
             'AI Engineer': ['ai engineer', 'machine learning engineer', 'ml engineer', 'ai researcher'],
             'Data Scientist': ['data scientist', 'data science', 'ml scientist'],
+            'Data Analyst': ['data analyst', 'sql analyst', 'business analyst', 'analytics', 'bi analyst'],
             'Data Engineer': ['data engineer', 'big data', 'data architect', 'etl developer'],
             'Web Developer': ['web developer', 'frontend developer', 'full stack', 'ui developer', 'react developer'],
             'Backend Developer': ['backend developer', 'software engineer', 'api developer', 'java developer'],
@@ -219,7 +220,20 @@ class DataDrivenInsights:
                         return category
             return 'Other'
         
+        # Apply role normalization
+        def normalize_role(role_name):
+            role_lower = str(role_name).lower()
+            if 'analyst' in role_lower or 'sql analyst' in role_lower:
+                return 'Data Analyst'
+            if 'data scientist' in role_lower:
+                return 'Data Scientist'
+            return role_name
+        
         df['job_category'] = df['job_title'].apply(categorize_job)
+        
+        # Apply role normalization
+        df['job_category'] = df['job_category'].apply(normalize_role)
+        
         df_tech = df[df['job_category'] != 'Other'].copy()
         
         print(f"   Categorized {len(df_tech)} tech jobs:")

@@ -74,7 +74,7 @@ class HybridFeatureEngineer:
             text: Resume text
         
         Returns:
-            List of extracted skills
+            List of extracted skills (with normalization applied)
         """
         if not text:
             return []
@@ -86,7 +86,78 @@ class HybridFeatureEngineer:
             if skill.lower() in text_lower:
                 found_skills.append(skill)
         
+        # IMPROVEMENT 1: Apply skill normalization
+        found_skills = self.normalize_skills(found_skills)
+        
         return found_skills
+    
+    def normalize_skills(self, skills_list):
+        """
+        Normalize related skills to parent categories.
+        
+        Examples:
+        - react, angular, vue → javascript
+        - node.js → javascript
+        - html, css → frontend
+        
+        IMPORTANT: 
+        - Keep original skills (do not replace)
+        - Add normalized skills (append)
+        - Remove duplicates
+        
+        Args:
+            skills_list: List of extracted skills
+        
+        Returns:
+            List with original + normalized skills (no duplicates)
+        """
+        if not skills_list:
+            return []
+        
+        # Normalization mapping: child skill → parent category
+        NORMALIZATION_MAP = {
+            'react': 'javascript',
+            'angular': 'javascript',
+            'vue': 'javascript',
+            'node.js': 'javascript',
+            'html': 'frontend',
+            'css': 'frontend',
+            'sass': 'frontend',
+            'less': 'frontend',
+            'bootstrap': 'frontend',
+            'tailwind': 'frontend',
+            'tensorflow': 'deep learning',
+            'pytorch': 'deep learning',
+            'keras': 'deep learning',
+            'pandas': 'data analysis',
+            'numpy': 'data analysis',
+            'matplotlib': 'data visualization',
+            'seaborn': 'data visualization',
+            'mongodb': 'nosql',
+            'postgresql': 'sql',
+            'mysql': 'sql',
+            'redis': 'nosql',
+            'elasticsearch': 'nosql',
+        }
+        
+        normalized_skills = list(skills_list)  # Keep original skills
+        
+        # Add normalized parent skills
+        for skill in skills_list:
+            skill_lower = skill.lower()
+            if skill_lower in NORMALIZATION_MAP:
+                parent_skill = NORMALIZATION_MAP[skill_lower]
+                normalized_skills.append(parent_skill)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_skills = []
+        for skill in normalized_skills:
+            if skill not in seen:
+                seen.add(skill)
+                unique_skills.append(skill)
+        
+        return unique_skills
     
     def extract_experience_years(self, text):
         """

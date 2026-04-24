@@ -1,45 +1,58 @@
 ================================================================================
-🎓 INTELLIGENT CAREER GUIDANCE REPORT #3
-Generated: 2026-04-21 23:48:52
+🎓 INTELLIGENT CAREER GUIDANCE REPORT #9
+Generated: 2026-04-21 23:40:56
 ================================================================================
 
 💡 EXTRACTED SKILLS:
 --------------------------------------------------------------------------------
-   • react
-   • angular
-   • vue
-   • jenkins
-   • git
-   • html
-   • css
-   • sass
-   • bootstrap
+   • python
+   • java
    • javascript
-   • frontend
+   • ruby
+   • go
+   • sql
+   • mongodb
+   • postgresql
+   • mysql
+   • elasticsearch
+   • node.js
+   • django
+   • docker
+   • kubernetes
+   • jenkins
+   • microservices
+   • nosql
 
 🎯 TOP-3 PREDICTIONS:
 --------------------------------------------------------------------------------
-   1. Web Developer       :  89.58% ██████████████████████████░░░░
-   2. Data Analyst        :   7.11% ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-   3. Data Scientist      :   1.59% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   1. Web Developer       :  76.69% ███████████████████████░░░░░░░
+   2. Backend Developer   :  21.79% ██████░░░░░░░░░░░░░░░░░░░░░░░░
+   3. DevOps Engineer     :   0.45% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 🏆 FINAL PREDICTED ROLE:
 --------------------------------------------------------------------------------
    Role: Web Developer
-   Confidence: 89.58%
+   Confidence: 76.69%
    Expected Salary: $75K - $130K (avg: $95K)
 
 🔍 SKILL GAP ANALYSIS:
 --------------------------------------------------------------------------------
-   Skill Match: 71.4%
-   Readiness: ⚠️  Nearly Ready (learn essentials)
+   Skill Match: 28.6%
+   Readiness: ❌ Needs Significant Upskilling
 
-   ⚠️  Missing Technical Skills (2):
-      • java
+   ⚡ HYBRID PROFILE DETECTED: backend, devops
+   This resume shows skills in multiple domains.
+   Consider specializing or targeting full-stack roles.
+
+   ⚠️  Missing Technical Skills (5):
       • typescript
+      • angular
+      • react
+      • css
+      • html
 
    📚 LEARNING PRIORITY:
-      Focus on: java, typescript
+      Focus on: typescript, angular
 
 🏢 SUGGESTED COMPANIES:
 --------------------------------------------------------------------------------

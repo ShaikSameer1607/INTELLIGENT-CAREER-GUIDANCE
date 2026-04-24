@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import torch
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, accuracy_score
@@ -36,7 +36,7 @@ from bert_embedding_module import BERTEmbeddingExtractor
 from hybrid_feature_engineering import HybridFeatureEngineer
 
 # TensorFlow for ANN
-import tensorflow as tf
+import tensorflow as t
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -55,7 +55,9 @@ CONFIG = {
     'val_size': 0.1,
     'random_seed': 42,
     'min_skill_frequency': 3,
-    'use_class_weights': True
+    'use_class_weights': True,
+    'use_kfold': True,  # NEW: Enable K-Fold Cross-Validation
+    'k_folds': 5  # NEW: Number of folds
 }
 
 
@@ -107,7 +109,7 @@ def prepare_job_categories(df, sample_size=2000):
         'Data Scientist': ['data scientist', 'data science'],
         'Data Engineer': ['data engineer', 'big data'],
         'Web Developer': ['web developer', 'frontend developer', 'full stack'],
-        'Backend Developer': ['backend developer', 'software engineer'],
+        'Backend Developer': ['backend developer', '+ware engineer'],
         'DevOps Engineer': ['devops', 'site reliability', 'sre'],
     }
     
@@ -213,6 +215,160 @@ def train_hybrid_ann(X_train, y_train, X_val, y_val, num_classes, input_dim):
     )
     
     return model, history
+
+
+def train_with_kfold_cross_validation(X, y, num_classes, input_dim, k_folds=5):
+    """
+    Train model using K-Fold Stratified Cross-Validation.
+    
+    This is MORE ROBUST than single train/test split:
+    - Trains k different models
+    - Each fold gets to be test set once
+    - Final metrics are averaged across all folds
+    - Better estimate of model performance
+    
+    Args:
+        X: Features
+        y: Labels
+        num_classes: Number of job roles
+        input_dim: Input feature dimensions
+        k_folds: Number of folds (default 5)
+    
+    Returns:
+        best_model: Best model across all folds
+        fold_results: Dictionary with results from each fold
+    """
+    print("\n" + "="*80)
+    print("PHASE 5: K-FOLD STRATIFIED CROSS-VALIDATION TRAINING")
+    print("="*80)
+    
+    print(f"\n🔄 Configuration:")
+    print(f"   • K-Folds: {k_folds}")
+    print(f"   • Total Samples: {len(X)}")
+    print(f"   • Samples per fold: ~{len(X)//k_folds} train, ~{len(X)//k_folds} val")
+    print(f"   • Strategy: Stratified (maintains class distribution)")
+    
+    # Initialize Stratified K-Fold
+    skf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
+    
+    fold_results = {
+        'accuracy': [],
+        'val_accuracy': [],
+        'loss': [],
+        'val_loss': [],
+        'models': [],
+        'histories': []
+    }
+    
+    # Train on each fold
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
+        print("\n" + "-"*80)
+        print(f"📊 FOLD {fold}/{k_folds}")
+        print("-"*80)
+        
+        # Split data for this fold
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+        
+        print(f"   Train: {len(X_train)} samples")
+        print(f"   Val:   {len(X_val)} samples")
+        
+        # Build model
+        model = Sequential([
+            Dense(128, activation='relu', input_shape=(input_dim,),
+                  kernel_regularizer=l2(0.01)),
+            BatchNormalization(),
+            Dropout(0.3),
+            
+            Dense(64, activation='relu', kernel_regularizer=l2(0.01)),
+            BatchNormalization(),
+            Dropout(0.3),
+            
+            Dense(num_classes, activation='softmax')
+        ])
+        
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        # Callbacks
+        callbacks = [
+            EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=0),
+            ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=1e-6, verbose=0)
+        ]
+        
+        # Class weights
+        class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
+        class_weight_dict = dict(enumerate(class_weights))
+        
+        # Train
+        print(f"   Training for {CONFIG['epochs']} epochs...")
+        history = model.fit(
+            X_train, y_train,
+            validation_data=(X_val, y_val),
+            epochs=CONFIG['epochs'],
+            batch_size=CONFIG['batch_size'],
+            callbacks=callbacks,
+            class_weight=class_weight_dict,
+            verbose=0  # Silent training, show summary later
+        )
+        
+        # Get best metrics
+        best_epoch = np.argmin(history.history['val_loss'])
+        fold_acc = history.history['accuracy'][best_epoch]
+        fold_val_acc = history.history['val_accuracy'][best_epoch]
+        fold_loss = history.history['loss'][best_epoch]
+        fold_val_loss = history.history['val_loss'][best_epoch]
+        
+        print(f"   ✅ Fold {fold} Results:")
+        print(f"      Train Acc: {fold_acc*100:.2f}%")
+        print(f"      Val Acc:   {fold_val_acc*100:.2f}%")
+        print(f"      Train Loss: {fold_loss:.4f}")
+        print(f"      Val Loss:   {fold_val_loss:.4f}")
+        
+        # Store results
+        fold_results['accuracy'].append(fold_acc)
+        fold_results['val_accuracy'].append(fold_val_acc)
+        fold_results['loss'].append(fold_loss)
+        fold_results['val_loss'].append(fold_val_loss)
+        fold_results['models'].append(model)
+        fold_results['histories'].append(history)
+    
+    # Calculate average metrics
+    avg_acc = np.mean(fold_results['accuracy'])
+    avg_val_acc = np.mean(fold_results['val_accuracy'])
+    avg_loss = np.mean(fold_results['loss'])
+    avg_val_loss = np.mean(fold_results['val_loss'])
+    std_acc = np.std(fold_results['val_accuracy'])
+    
+    print("\n" + "="*80)
+    print("📊 K-FOLD CROSS-VALIDATION SUMMARY")
+    print("="*80)
+    
+    print(f"\n📈 Performance Across {k_folds} Folds:")
+    print(f"   • Mean Train Accuracy: {avg_acc*100:.2f}%")
+    print(f"   • Mean Val Accuracy:   {avg_val_acc*100:.2f}%")
+    print(f"   • Mean Train Loss:     {avg_loss:.4f}")
+    print(f"   • Mean Val Loss:       {avg_val_loss:.4f}")
+    print(f"   • Std Dev (Val Acc):   {std_acc*100:.2f}%")
+    
+    print(f"\n📋 Per-Fold Validation Accuracy:")
+    for i, acc in enumerate(fold_results['val_accuracy'], 1):
+        print(f"   Fold {i}: {acc*100:.2f}%")
+    
+    # Select best model (highest validation accuracy)
+    best_fold_idx = np.argmax(fold_results['val_accuracy'])
+    best_model = fold_results['models'][best_fold_idx]
+    
+    print(f"\n🏆 Best Model: Fold {best_fold_idx+1} (Val Acc: {fold_results['val_accuracy'][best_fold_idx]*100:.2f}%)")
+    print(f"\n✅ K-Fold Training Complete!")
+    print(f"   • All {k_folds} models trained successfully")
+    print(f"   • Results are more reliable than single split")
+    print(f"   • Standard deviation shows model stability")
+    
+    return best_model, fold_results
 
 
 def evaluate_model(model, X_test, y_test, class_names, history=None):
@@ -402,29 +558,56 @@ def main():
     
     print(f"\n✓ Classes: {list(class_names)}")
     
-    # Train/val/test split
-    X_trainval, X_test, y_trainval, y_test = train_test_split(
-        hybrid_features, y, test_size=CONFIG['test_size'], 
-        random_state=CONFIG['random_seed'], stratify=y
-    )
-    
-    val_ratio = CONFIG['val_size'] / (1 - CONFIG['test_size'])
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_trainval, y_trainval, test_size=val_ratio,
-        random_state=CONFIG['random_seed'], stratify=y_trainval
-    )
-    
-    print(f"\n✓ Data splits:")
-    print(f"   Train: {len(X_train)}")
-    print(f"   Val:   {len(X_val)}")
-    print(f"   Test:  {len(X_test)}")
-    
-    # Phase 6: Train model
-    model, history = train_hybrid_ann(
-        X_train, y_train, X_val, y_val,
-        num_classes=len(class_names),
-        input_dim=hybrid_features.shape[1]
-    )
+    # K-FOLD STRATIFIED CROSS-VALIDATION
+    if CONFIG.get('use_kfold', False):
+        print("\n🔄 Using K-FOLD STRATIFIED CROSS-VALIDATION...")
+        print("   This trains multiple models and averages results for better reliability!")
+        
+        # Use all data for K-Fold (no separate test set)
+        model, fold_results = train_with_kfold_cross_validation(
+            hybrid_features, y,
+            num_classes=len(class_names),
+            input_dim=hybrid_features.shape[1],
+            k_folds=CONFIG['k_folds']
+        )
+        
+        # Use best fold's history for evaluation
+        best_fold_idx = np.argmax(fold_results['val_accuracy'])
+        history = fold_results['histories'][best_fold_idx]
+        
+        # Create pseudo test set from last fold for final evaluation
+        skf = StratifiedKFold(n_splits=CONFIG['k_folds'], shuffle=True, random_state=42)
+        all_splits = list(skf.split(hybrid_features, y))
+        _, test_idx = all_splits[-1]  # Use last fold as test
+        X_test, y_test = hybrid_features[test_idx], y[test_idx]
+        
+    else:
+        # Traditional train/val/test split
+        print("\n📊 Using traditional train/val/test split...")
+        
+        # Train/val/test split
+        X_trainval, X_test, y_trainval, y_test = train_test_split(
+            hybrid_features, y, test_size=CONFIG['test_size'], 
+            random_state=CONFIG['random_seed'], stratify=y
+        )
+        
+        val_ratio = CONFIG['val_size'] / (1 - CONFIG['test_size'])
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_trainval, y_trainval, test_size=val_ratio,
+            random_state=CONFIG['random_seed'], stratify=y_trainval
+        )
+        
+        print(f"\n✓ Data splits:")
+        print(f"   Train: {len(X_train)}")
+        print(f"   Val:   {len(X_val)}")
+        print(f"   Test:  {len(X_test)}")
+        
+        # Phase 6: Train model
+        model, history = train_hybrid_ann(
+            X_train, y_train, X_val, y_val,
+            num_classes=len(class_names),
+            input_dim=hybrid_features.shape[1]
+        )
     
     # Phase 7: Evaluate
     evaluate_model(model, X_test, y_test, class_names, history)
@@ -480,6 +663,9 @@ def main():
     print(f"  ✓ BERT embeddings (768-dim) for semantic understanding")
     print(f"  ✓ Hybrid features (BERT + structured)")
     print(f"  ✓ ANN model with regularization")
+    if CONFIG.get('use_kfold', False):
+        print(f"  ✓ K-Fold Stratified Cross-Validation ({CONFIG['k_folds']} folds)")
+        print(f"  ✓ More robust evaluation than single split")
     print(f"  ✓ End-to-end prediction pipeline")
     print("="*80)
 

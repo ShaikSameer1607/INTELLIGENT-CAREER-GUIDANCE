@@ -1,52 +1,58 @@
 ================================================================================
 🎓 INTELLIGENT CAREER GUIDANCE REPORT #5
-Generated: 2026-04-21 11:58:47
+Generated: 2026-04-21 23:33:36
 ================================================================================
 
 💡 EXTRACTED SKILLS:
 --------------------------------------------------------------------------------
-   • react
-   • angular
-   • vue
+   • python
+   • java
+   • javascript
+   • ruby
+   • go
+   • sql
+   • mongodb
+   • postgresql
+   • mysql
+   • elasticsearch
+   • node.js
+   • django
+   • docker
+   • kubernetes
    • jenkins
-   • git
-   • html
-   • css
-   • sass
-   • bootstrap
+   • microservices
+   • nosql
 
 🎯 TOP-3 PREDICTIONS:
 --------------------------------------------------------------------------------
-   1. Web Developer       :  60.78% ██████████████████░░░░░░░░░░░░
-   2. Data Engineer       :  23.96% ███████░░░░░░░░░░░░░░░░░░░░░░░
-   3. Data Scientist      :  11.73% ███░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   1. Web Developer       :  76.69% ███████████████████████░░░░░░░
+   2. Backend Developer   :  21.79% ██████░░░░░░░░░░░░░░░░░░░░░░░░
+   3. DevOps Engineer     :   0.45% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 🏆 FINAL PREDICTED ROLE:
 --------------------------------------------------------------------------------
    Role: Web Developer
-   Confidence: 60.78%
+   Confidence: 76.69%
    Expected Salary: $75K - $130K (avg: $95K)
 
 🔍 SKILL GAP ANALYSIS:
 --------------------------------------------------------------------------------
-   Skill Match: 26.7%
+   Skill Match: 28.6%
    Readiness: ❌ Needs Significant Upskilling
 
-   💡 Missing Preferred Skills (11):
-      • javascript
-      • java
-      • aws
-      • python
-      • sql
+   ⚡ HYBRID PROFILE DETECTED: backend, devops
+   This resume shows skills in multiple domains.
+   Consider specializing or targeting full-stack roles.
+
+   ⚠️  Missing Technical Skills (5):
       • typescript
-      • docker
-      • kubernetes
-      • go
-      • software engineering
-      • agile
+      • angular
+      • react
+      • css
+      • html
 
    📚 LEARNING PRIORITY:
-      Focus on: javascript, java
+      Focus on: typescript, angular
 
 🏢 SUGGESTED COMPANIES:
 --------------------------------------------------------------------------------

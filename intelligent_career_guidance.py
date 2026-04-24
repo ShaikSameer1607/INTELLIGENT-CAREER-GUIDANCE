@@ -46,6 +46,13 @@ from ocr_module import extract_text_with_fallback
 from bert_embedding_module import BERTEmbeddingExtractor
 from hybrid_feature_engineering import HybridFeatureEngineer
 from data_driven_insights import DataDrivenInsights
+from domain_aware_enhancements import (
+    normalize_skills,
+    expand_skills,
+    detect_hybrid,
+    filter_relevant_skills,
+    enhanced_predict_with_domain_awareness
+)
 
 # TensorFlow for model
 import tensorflow as tf
@@ -141,35 +148,14 @@ def generate_predictions(model, features, label_encoder):
 
 def analyze_skill_gaps(skills, predicted_role, insights):
     """
-    Compute skill gap using DATA-DRIVEN insights from real job postings.
+    Compute skill gap using domain-filtered, dataset-derived skills.
     
-    HOW THIS WORKS (vs old hardcoded approach):
-    ===========================================
-    OLD (Hardcoded):
-      required_skills = ROLE_SKILLS[predicted_role]['essential']
-      → Manually defined, may not reflect actual market
-    
-    NEW (Data-Driven):
-      required_skills = insights.get_top_skills(predicted_role, top_n=15)
-      → Learned from thousands of real job postings
-      → Reflects ACTUAL employer requirements
-    
-    Example:
-      If 847 out of 1000 Web Developer jobs require JavaScript,
-      the system KNOWS JavaScript is essential (not hardcoded).
-    
-    Args:
-        skills: Skills extracted from resume
-        predicted_role: ANN-predicted job category
-        insights: DataDrivenInsights object with real job market data
-    
-    Returns:
-        Dictionary with skill gap analysis
+    This function is now integrated into the enhanced pipeline.
+    Skill filtering happens in domain_aware_enhancements.py
     """
-    # Use data-driven insights to compute skill gap
-    skill_gap = insights.compute_skill_gap(predicted_role, skills)
-    
-    return skill_gap
+    # This function is deprecated - skill gap is now computed in the pipeline
+    # Kept for backward compatibility
+    return None
 
 
 def get_companies_and_salary(predicted_role, insights):
@@ -276,21 +262,27 @@ def generate_report(result, skills, report_num):
         report_lines.append(f"   Readiness: {readiness}")
         report_lines.append("")
         
-        if result['skill_gap']['missing_essential']:
-            report_lines.append(f"   ⚠️  Missing Essential Skills ({len(result['skill_gap']['missing_essential'])}):")
-            for skill in result['skill_gap']['missing_essential']:
+        # Show hybrid profile if detected
+        if result.get('is_hybrid', False):
+            strong_domains = result.get('strong_domains', [])
+            report_lines.append(f"   ⚡ HYBRID PROFILE DETECTED: {', '.join(strong_domains)}")
+            report_lines.append(f"   This resume shows skills in multiple domains.")
+            report_lines.append(f"   Consider specializing or targeting full-stack roles.")
+            report_lines.append("")
+        
+        # Missing skills (new structure)
+        missing_skills = result['skill_gap'].get('missing_skills', [])
+        if missing_skills:
+            report_lines.append(f"   ⚠️  Missing Technical Skills ({len(missing_skills)}):")
+            for skill in missing_skills:
                 report_lines.append(f"      • {skill}")
             report_lines.append("")
         
-        if result['skill_gap']['missing_preferred']:
-            report_lines.append(f"   💡 Missing Preferred Skills ({len(result['skill_gap']['missing_preferred'])}):")
-            for skill in result['skill_gap']['missing_preferred']:
-                report_lines.append(f"      • {skill}")
-            report_lines.append("")
-        
-        if result['skill_gap']['learning_priority']:
+        # Learning priority
+        learning_priority = result['skill_gap'].get('learning_priority', [])
+        if learning_priority:
             report_lines.append(f"   📚 LEARNING PRIORITY:")
-            report_lines.append(f"      Focus on: {', '.join(result['skill_gap']['learning_priority'])}")
+            report_lines.append(f"      Focus on: {', '.join(learning_priority)}")
             report_lines.append("")
     
     # Company recommendations
@@ -335,7 +327,12 @@ def analyze_resume(image_path, model, label_encoder, feature_engineer, bert_extr
     # Step 2: Extract skills
     print("\n[2/6] Extracting skills...")
     skills = extract_skills(resume_text, feature_engineer)
-    print(f"✓ Found {len(skills)} skills: {', '.join(skills[:8])}")
+    print(f"✓ Found {len(skills)} raw skills: {', '.join(skills[:8])}")
+    
+    # Normalize and expand skills (domain-aware)
+    skills_normalized = normalize_skills(skills)
+    skills_expanded = expand_skills(skills_normalized)
+    print(f"✓ Normalized & expanded: {len(skills_expanded)} skills (with domain signals)")
     
     # Step 3: BERT embeddings
     print("\n[3/6] Generating BERT embeddings...")
@@ -348,21 +345,38 @@ def analyze_resume(image_path, model, label_encoder, feature_engineer, bert_extr
     features = feature_engineer.transform_single_resume(bert_embedding, resume_text)
     print(f"✓ Hybrid features: {features.shape}")
     
-    # Step 5: Generate predictions
-    print("\n[5/6] Generating predictions...")
-    top_3, probabilities = generate_predictions(model, features, label_encoder)
+    # Step 5: Generate predictions WITH DOMAIN-AWARE ENHANCEMENTS
+    print("\n[5/6] Generating predictions (domain-aware, hybrid detection)...")
     
-    predicted_role = top_3[0]['role']
-    confidence = top_3[0]['confidence']
-    print(f"✓ Top prediction: {predicted_role}")
+    # Use enhanced prediction pipeline with all improvements
+    prediction_results = enhanced_predict_with_domain_awareness(
+        model, features, label_encoder, skills_expanded, resume_text, insights, alpha=0.5
+    )
+    
+    top_3 = prediction_results['top_3']
+    predicted_role = prediction_results['predicted_role']
+    confidence = prediction_results['confidence']
+    domain_scores = prediction_results['domain_scores']
+    is_hybrid = prediction_results['is_hybrid']
+    strong_domains = prediction_results['strong_domains']
+    
+    print(f"✓ Top prediction: {predicted_role} ({confidence:.2f}%)")
+    print(f"✓ Domain scores: {', '.join([f'{k}: {v:.2f}' for k, v in domain_scores.items() if v > 0.1])}")
+    
+    # Show hybrid detection if applicable
+    if is_hybrid:
+        print(f"⚡ Hybrid Profile Detected: {', '.join(strong_domains)}")
+        print(f"   → Confidence adjusted for mixed signals")
     
     # Step 6: DATA-DRIVEN skill gap & companies
     print("\n[6/6] Computing DATA-DRIVEN insights (from real job market data)...")
-    skill_gap = analyze_skill_gaps(skills, predicted_role, insights)
+    
+    # Use filtered relevant skills for gap analysis (domain-based filtering)
+    skill_gap = prediction_results['skill_gap']
     companies, salary, company_context = get_companies_and_salary(predicted_role, insights)
     
     match_pct = skill_gap['match_percentage'] if skill_gap else 0
-    print(f"✓ Skill match: {match_pct:.1f}% (based on {skill_gap['total_required']} top required skills)")
+    print(f"✓ Skill match: {match_pct:.1f}% (based on {skill_gap['total_required']} domain-relevant skills)")
     print(f"✓ Companies: {len(companies)} suggested (from dataset)")
     print(f"✓ Salary: {salary}")
     
@@ -371,12 +385,15 @@ def analyze_resume(image_path, model, label_encoder, feature_engineer, bert_extr
         'predicted_role': predicted_role,
         'confidence': confidence,
         'top_3': top_3,
-        'skills': skills,
+        'skills': skills_expanded,  # Use expanded skills
         'skill_gap': skill_gap,
         'companies': companies,
         'company_context': company_context,
         'salary': salary,
-        'text': resume_text
+        'text': resume_text,
+        'domain_scores': domain_scores,
+        'is_hybrid': is_hybrid,  # Hybrid profile flag
+        'strong_domains': strong_domains  # Which domains are strong
     }
     
     # Generate and save report
